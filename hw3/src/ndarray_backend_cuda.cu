@@ -102,19 +102,19 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
   /// BEGIN YOUR SOLUTION
   if (gid < size) {
     size_t tmp = gid;
-    uint32_t indices[MAX_VEC_SIZE];
+    size_t indices[MAX_VEC_SIZE];
 
     for (size_t i = shape.size; i > 0; i--) {
       indices[i - 1] = tmp % shape.data[i - 1];
       tmp /= shape.data[i - 1];
     }
 
-    size_t idx = 0;
+    size_t index = offset;
     for (size_t i = 0; i < shape.size; i++) {
-      idx += indices[i] * strides.data[i];
+      index += indices[i] * strides.data[i];
     }
 
-    out[gid] = a[idx + offset];
+    out[gid] = a[index];
   }
   /// END YOUR SOLUTION
 }
@@ -160,19 +160,19 @@ __global__ void EwiseSetitemKernel(const scalar_t* a, scalar_t* out, size_t size
 
   if (gid < size) {
     size_t tmp = gid;
-    uint32_t indices[MAX_VEC_SIZE];
+    size_t indices[MAX_VEC_SIZE];
 
     for (size_t i = shape.size; i > 0; i--) {
       indices[i - 1] = tmp % shape.data[i - 1];
       tmp /= shape.data[i - 1];
     }
 
-    size_t idx = 0;
+    size_t index = offset;
     for (size_t i = 0; i < shape.size; i++) {
-      idx += indices[i] * strides.data[i];
+      index += indices[i] * strides.data[i];
     }
 
-    out[idx + offset] = a[gid];
+    out[index] = a[gid];
   }
 }
 
@@ -215,19 +215,19 @@ __global__ void ScalarSetitemKernel(size_t size, scalar_t val, scalar_t* out, Cu
 
   if (gid < size) {
     size_t tmp = gid;
-    uint32_t indices[MAX_VEC_SIZE];
+    size_t indices[MAX_VEC_SIZE];
 
     for (size_t i = shape.size; i > 0; i--) {
       indices[i - 1] = tmp % shape.data[i - 1];
       tmp /= shape.data[i - 1];
     }
 
-    size_t idx = 0;
+    size_t index = offset;
     for (size_t i = 0; i < shape.size; i++) {
-      idx += indices[i] * strides.data[i];
+      index += indices[i] * strides.data[i];
     }
 
-    out[idx + offset] = val;
+    out[index] = val;
   }
 }
 

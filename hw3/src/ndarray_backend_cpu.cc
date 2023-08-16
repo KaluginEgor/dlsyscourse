@@ -63,13 +63,13 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> sha
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN YOUR SOLUTION
-  std::vector<u_int32_t> indices(shape.size(), 0);
+  std::vector<size_t> indices(shape.size(), 0);
   for (size_t i = 0; i < out->size; ++i) {
-    size_t index = 0;
+    size_t index = offset;
     for (size_t j = 0; j < indices.size(); ++j) {
       index += indices[j] * strides[j];
     }
-    out->ptr[i] = a.ptr[index + offset];
+    out->ptr[i] = a.ptr[index];
 
     indices[indices.size() - 1]++;
     for (int j = indices.size() - 1; j > 0; --j) {
@@ -95,13 +95,13 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN YOUR SOLUTION
-  std::vector<u_int32_t> indices(shape.size(), 0);
+  std::vector<size_t> indices(shape.size(), 0);
   for (size_t i = 0; i < a.size; i++) {
-    size_t index = 0;
+    size_t index = offset;
     for (size_t j = 0; j < indices.size(); j++) {
       index += indices[j] * strides[j];
     }
-    out->ptr[index + offset] = a.ptr[i];
+    out->ptr[index] = a.ptr[i];
 
     indices[indices.size() - 1]++;
     for (int j = indices.size() - 1; j > 0; j--) {
@@ -131,13 +131,13 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN YOUR SOLUTION
-  std::vector<u_int32_t> indices(shape.size(), 0);
+  std::vector<size_t> indices(shape.size(), 0);
   for (size_t i = 0; i < size; i++) {
-    size_t index = 0;
+    size_t index = offset;
     for (size_t j = 0; j < indices.size(); j++) {
       index += indices[j] * strides[j];
     }
-    out->ptr[index + offset] = val;
+    out->ptr[index] = val;
 
     indices[indices.size() - 1]++;
     for (int j = indices.size() - 1; j > 0; j--) {
