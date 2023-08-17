@@ -271,7 +271,10 @@ class NDArray:
         ### BEGIN YOUR SOLUTION
         new_shape = tuple(self.shape[i] for i in new_axes)
         new_strides = tuple(self.strides[i] for i in new_axes)
-        return self.as_strided(new_shape, new_strides)
+        # return self.as_strided(new_shape, new_strides) # this one resets the offset
+        return NDArray.make(
+            new_shape, strides=new_strides, device=self.device, handle=self._handle, offset=self._offset
+        )
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
