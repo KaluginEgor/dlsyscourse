@@ -66,7 +66,7 @@ def epoch(dataloader, model, opt=None):
             opt.step()
             
         avg_err += (y_hat.numpy().argmax(axis=1) != y.numpy()).sum()
-        avg_loss += loss.numpy() * B
+        avg_loss += loss.numpy().item() * B
 
     avg_err /= data_size
     avg_loss /= data_size

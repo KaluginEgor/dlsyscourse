@@ -251,7 +251,7 @@ def broadcast_to(a, shape):
 
 class Summation(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
-        self.axes = axes
+        self.axes = axes if not isinstance(axes, int) else (axes,)
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
@@ -262,11 +262,10 @@ class Summation(TensorOp):
         ### BEGIN YOUR SOLUTION
         in_shape = node.inputs[0].shape
 
-        if self.axes is None:
-            return (broadcast_to(out_grad, in_shape),)
-        else:
-            shape = tuple(1 if idx in self.axes else s for idx, s in enumerate(in_shape))        
-            return broadcast_to(reshape(out_grad, shape), in_shape)
+        axes = list(range(len(in_shape))) if self.axes is None else self.axes
+        shape = tuple(1 if axis in axes else dim_shape for axis, dim_shape in enumerate(in_shape)) 
+     
+        return broadcast_to(reshape(out_grad, shape), in_shape)
         ### END YOUR SOLUTION
 
 
@@ -354,7 +353,8 @@ class ReLU(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return out_grad * array_api.greater(node.inputs[0].realize_cached_data(), 0.).astype(array_api.float32)
+        inp = node.inputs[0]
+        return out_grad * Tensor(array_api.greater(node.inputs[0].realize_cached_data(), 0.).astype(array_api.float32), device=inp.device)
         ### END YOUR SOLUTION
 
 
@@ -365,7 +365,7 @@ def relu(a):
 
 class LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
-        self.axes = axes
+        self.axes = axes if not isinstance(axes, int) else (axes,)
 
     def compute(self, Z):
         ### BEGIN YOUR SOLUTION
@@ -381,15 +381,15 @@ class LogSumExp(TensorOp):
         ### BEGIN YOUR SOLUTION
         Z = node.inputs[0]
         in_shape = Z.shape
-        Z_max = array_api.amax(Z.cached_data, axis=self.axes, keepdims=True)
+        Z_max = Tensor(array_api.broadcast_to(array_api.amax(Z.cached_data, axis=self.axes, keepdims=True), in_shape), device=Z.device)
         Z_exp = exp(Z - Z_max)
         Z_exp_sum = summation(exp(Z - Z_max), self.axes)
         out_grad = out_grad / Z_exp_sum
-        if self.axes is None:
-            return (broadcast_to(out_grad, in_shape) * Z_exp,)
-        else:
-            shape = tuple(1 if idx in self.axes else s for idx, s in enumerate(in_shape))        
-            return (broadcast_to(reshape(out_grad, shape), in_shape) * Z_exp,)
+
+        axes = list(range(len(in_shape))) if self.axes is None else self.axes
+        shape = tuple(1 if axis in axes else dim_shape for axis, dim_shape in enumerate(in_shape))
+
+        return broadcast_to(reshape(out_grad, shape), in_shape) * Z_exp
         ### END YOUR SOLUTION
 
 

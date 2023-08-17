@@ -89,19 +89,15 @@ class Linear(Module):
 
         ### BEGIN YOUR SOLUTION
         self.weight = Parameter(init.kaiming_uniform(in_features, out_features, device=device, dtype=dtype, requires_grad=True))
-        self.bias = None
-        if bias:
-            self.bias = Parameter(ops.reshape(init.kaiming_uniform(out_features, 1, device=device, dtype=dtype, requires_grad=True), shape=(1, -1)))
+        self.bias = Parameter(ops.transpose(init.kaiming_uniform(self.out_features, 1, device=device, dtype=dtype))) if bias else None
         ### END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        if self.bias is None:
-            return X.matmul(self.weight)
-        else:
-            shape = (1,) * (len(X.shape) - 1) + (self.out_features,)
-            shape_bias = X.shape[:-1] + (self.out_features,)
-            return X.matmul(self.weight) + self.bias.reshape(shape).broadcast_to(shape_bias)
+        X = ops.matmul(X, self.weight)
+        if self.bias:
+            X = ops.add(X, ops.broadcast_to(self.bias, X.shape))
+        return X
         ### END YOUR SOLUTION
 
 
@@ -137,7 +133,7 @@ class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
         m, k = logits.shape
-        y_one_hot = init.one_hot(k, y)
+        y_one_hot = init.one_hot(k, y, device=y.device)
         log_sum_exp_zi = ops.reshape(ops.logsumexp(logits, axes=(1,)), (m, 1))
         log_sum_exp_zi_broadcasted = ops.broadcast_to(log_sum_exp_zi, (m, k))
         losses = log_sum_exp_zi_broadcasted - logits
@@ -176,7 +172,9 @@ class BatchNorm1d(Module):
             
             return x_norm * self.weight.reshape((1, d)).broadcast_to((m, d)) + self.bias.reshape((1, d)).broadcast_to((m, d))
         else:
-            return (x - self.running_mean.reshape((1, d)).broadcast_to((m, d))) / (self.running_var.reshape((1, d)).broadcast_to((m, d)) + self.eps) ** 0.5 * self.weight + self.bias
+            return (x - self.running_mean.reshape((1, d)).broadcast_to((m, d))) / \
+                    (self.running_var.reshape((1, d)).broadcast_to((m, d)) + self.eps) ** 0.5 * \
+                    self.weight.reshape((1, d)).broadcast_to((m, d)) + self.bias.reshape((1, d)).broadcast_to((m, d))
         ### END YOUR SOLUTION
 
 
