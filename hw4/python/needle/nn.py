@@ -172,29 +172,34 @@ class BatchNorm1d(Module):
         self.eps = eps
         self.momentum = momentum
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(init.ones(dim, device=device, dtype=dtype, requires_grad=True))
-        self.bias = Parameter(init.zeros(dim, device=device, dtype=dtype, requires_grad=True))
-        self.running_mean = init.zeros(dim, device=device, dtype=dtype, requires_grad=False)
-        self.running_var = init.ones(dim, device=device, dtype=dtype, requires_grad=False)
+        self.weight = Parameter(init.ones(1, self.dim, device=device, dtype=dtype))
+        self.bias = Parameter(init.zeros(1, self.dim, device=device, dtype=dtype))
+        self.running_mean = init.zeros(self.dim, device=device, dtype=dtype)
+        self.running_var = init.ones(self.dim, device=device, dtype=dtype)
         ### END YOUR SOLUTION
+
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
         m, d = x.shape
         if self.training:
-            x_sum = x.sum(axes=(0,))
-            x_mean = x_sum / m
-            x_var = ((x - x_mean.reshape((1, d)).broadcast_to((m, d))) ** 2).sum(axes=(0,)) / m
-            x_norm = (x - x_mean.reshape((1, d)).broadcast_to((m, d))) / (x_var.reshape((1, d)).broadcast_to((m, d)) + self.eps) ** 0.5
-            
+            x_mean = x.sum(axes=(0,)) / m
+            x_sub = x - x_mean.reshape((1, d)).broadcast_to((m, d))
+            x_var = (x_sub ** 2).sum(axes=(0,)) / m
+            x_sigma_eps = (x_var + self.eps) ** 0.5
+            x_norm = x_sub / x_sigma_eps.reshape((1, d)).broadcast_to((m, d))
+
             self.running_mean.data = (1 - self.momentum) * self.running_mean.data + self.momentum * x_mean.data
             self.running_var.data = (1 - self.momentum) * self.running_var.data + self.momentum * x_var.data
             
-            return x_norm * self.weight.reshape((1, d)).broadcast_to((m, d)) + self.bias.reshape((1, d)).broadcast_to((m, d))
+            return x_norm * self.weight.broadcast_to((m, d)) + self.bias.broadcast_to((m, d))
         else:
-            return (x - self.running_mean.reshape((1, d)).broadcast_to((m, d))) / \
-                    (self.running_var.reshape((1, d)).broadcast_to((m, d)) + self.eps) ** 0.5 * \
-                    self.weight.reshape((1, d)).broadcast_to((m, d)) + self.bias.reshape((1, d)).broadcast_to((m, d))
+            x_mean = self.running_mean.detach()
+            x_var = self.running_var.detach()
+            x_sub = x - x_mean.reshape((1, d)).broadcast_to((m, d))
+            x_sigma_eps = (x_var + self.eps) ** 0.5
+            x_norm = x_sub / x_sigma_eps.reshape((1, d)).broadcast_to((m, d))
+            return x_norm * self.weight.broadcast_to((m, d)) + self.bias.broadcast_to((m, d))
         ### END YOUR SOLUTION
 
 

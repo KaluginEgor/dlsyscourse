@@ -156,7 +156,9 @@ class EWiseDiv(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         lhs, rhs = node.inputs
-        return out_grad / rhs, -out_grad * divide(lhs, rhs ** 2)
+        lhs_grad = out_grad * power_scalar(rhs, -1)
+        rhs_grad = -out_grad * (lhs * power_scalar(rhs, -2))
+        return lhs_grad, rhs_grad
         ### END YOUR SOLUTION
 
 
@@ -213,7 +215,7 @@ class Reshape(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        return array_api.reshape(a, self.shape)
+        return array_api.reshape(a.compact(), self.shape)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -380,7 +382,6 @@ class Sigmoid(TensorOp):
 def sigmoid(a):
     return Sigmoid()(a)
 
-
 class LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         self.axes = axes if not isinstance(axes, int) else (axes,)
@@ -399,16 +400,19 @@ class LogSumExp(TensorOp):
         ### BEGIN YOUR SOLUTION
         Z = node.inputs[0]
         in_shape = Z.shape
-        Z_max = Tensor(Z.cached_data.max(axis=self.axes, keepdims=True).broadcast_to(in_shape), device=Z.device)
-
-        Z_exp = exp(Z - Z_max)
-        Z_exp_sum = summation(exp(Z - Z_max), self.axes)
-        out_grad = out_grad / Z_exp_sum
+        Z_max_broatcasted = Tensor(Z.cached_data.max(axis=self.axes, keepdims=True).broadcast_to(in_shape), device=Z.device)
+        Z_exp = exp(Z - Z_max_broatcasted)
+        Z_exp_sum = summation(Z_exp, axes=self.axes)
 
         axes = list(range(len(in_shape))) if self.axes is None else self.axes
         shape = tuple(1 if axis in axes else dim_shape for axis, dim_shape in enumerate(in_shape))
+
+        Z_exp_sum_broadcasted = broadcast_to(reshape(Z_exp_sum, shape), in_shape)
+        Z_norm = Z_exp / Z_exp_sum_broadcasted
+
+        out_grad_broadcasted = broadcast_to(reshape(out_grad, shape), in_shape)
         
-        return broadcast_to(reshape(out_grad, shape), in_shape) * Z_exp
+        return out_grad_broadcasted * Z_norm
         ### END YOUR SOLUTION
 
 
@@ -635,6 +639,3 @@ class Conv(TensorOp):
 
 def conv(a, b, stride=1, padding=1):
     return Conv(stride, padding)(a, b)
-
-
-
